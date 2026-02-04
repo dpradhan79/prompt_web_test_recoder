@@ -9,7 +9,7 @@ from typing import List, Optional, Tuple
 
 from playwright.sync_api import Page, Locator as PwLocator
 
-from conceptual_objects import Locator
+from dataclass.conceptual_objects import Locator
 
 # Strategy weights for confidence calculation (heuristic)
 STRATEGY_WEIGHT = {

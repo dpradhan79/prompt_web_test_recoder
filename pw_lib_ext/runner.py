@@ -13,10 +13,10 @@ from zoneinfo import ZoneInfo
 
 from playwright.sync_api import sync_playwright, Playwright, Browser, BrowserContext, Page, expect
 
-from artifacts import ArtifactManager
-from conceptual_objects import Step, WaitConfig, artifacts_to_json_dict, steps_to_json, IntentItem
+from artifacts.artifacts import ArtifactManager
+from dataclass.conceptual_objects import Step, WaitConfig, artifacts_to_json_dict, steps_to_json, IntentItem
 from config import AppConfig
-from grounder import Grounder
+from llm_service.grounder import Grounder
 from locator import LocatorResolver
 
 NAV_WAIT_MAP = {

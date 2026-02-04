@@ -11,11 +11,11 @@ import re
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
-from conceptual_objects import (
+from dataclass.conceptual_objects import (
     Intents, IntentItem, get_intents_from_json_str, get_intents_from_dict, Step, Locator, WaitConfig, step_from_json_obj
 )
-from config import AppConfig
-from libs.abstract.abstract_llm_client import AbstractLLMClient
+from pw_lib_ext.config import AppConfig
+from abstract_llm_client import AbstractLLMClient
 
 
 def _read_text_safe(path: str, limit: int = 200_000) -> str:

@@ -5,8 +5,7 @@ Date                    Author                          Change Details
 import json
 from pathlib import Path
 from typing import List, Dict, Any
-
-from conceptual_objects import Step, Locator
+from dataclass.conceptual_objects import Step, Locator
 
 
 def _locator_to_playwright(locator: Locator) -> Dict[str, Any]:

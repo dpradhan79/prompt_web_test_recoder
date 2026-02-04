@@ -9,7 +9,8 @@ from typing import Tuple
 
 from playwright.sync_api import Page
 
-from conceptual_objects import ArtifactsMap, ArtifactsMapEntry
+from dataclass.conceptual_objects import (ArtifactsMap,
+                                          ArtifactsMapEntry)
 
 
 class ArtifactManager:

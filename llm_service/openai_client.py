@@ -2,7 +2,7 @@ import logging
 
 from openai import OpenAI
 
-from libs.abstract.abstract_llm_client import AbstractLLMClient
+from abstract_llm_client import AbstractLLMClient
 
 logger = logging.getLogger(__name__)
 
