@@ -118,7 +118,7 @@ class PWStepExecutor:
         return False
 
     # ---------- main execution ----------
-    def execute_steps(self, steps: List[Step], step_no: IntentItem.step_no = 1) -> List[Step]:
+    def execute_steps(self, steps: List[Step], step_no: int = 1) -> List[Step]:
         assert self._page
         final_steps: List[Step] = []
         # dom_id, sc_id = self.artifacts.capture_dom_and_screenshot(self._page)
