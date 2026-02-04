@@ -9,7 +9,7 @@ from abc import ABC
 from multiprocessing.context import AuthenticationError
 from typing import List, Dict
 
-from openai import OpenAI, BadRequestError
+from openai import OpenAI, BadRequestError, PermissionDeniedError
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +63,11 @@ class AbstractLLMClient(ABC):
                 logger.info(msg)
                 print(msg)
                 raise e
+            except PermissionDeniedError as e:
+                msg = 'LLM Permission Denied Error'
+                print(msg)
+                raise e
+
             except Exception as e:
                 attempt_counter += 1
                 time.sleep(1)

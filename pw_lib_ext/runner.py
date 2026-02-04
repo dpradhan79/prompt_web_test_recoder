@@ -15,9 +15,9 @@ from playwright.sync_api import sync_playwright, Playwright, Browser, BrowserCon
 
 from artifacts.artifacts import ArtifactManager
 from dataclass.conceptual_objects import Step, WaitConfig, artifacts_to_json_dict, steps_to_json, IntentItem
-from config import AppConfig
+from pw_lib_ext.config import AppConfig
 from llm_service.grounder import Grounder
-from locator import LocatorResolver
+from pw_lib_ext.locator import LocatorResolver
 
 NAV_WAIT_MAP = {
     "domReady": "domcontentloaded",

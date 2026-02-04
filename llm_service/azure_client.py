@@ -2,7 +2,7 @@ import logging
 
 from openai import AzureOpenAI
 
-from abstract_llm_client import AbstractLLMClient
+from llm_service.abstract_llm_client import AbstractLLMClient
 
 logger = logging.getLogger(__name__)
 

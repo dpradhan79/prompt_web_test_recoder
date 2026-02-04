@@ -6,7 +6,6 @@ Test follows prompt, navigates web, validates and produces traces of navigation 
 
 #### 1. pip
 
-
 ### - Virtual Environment
 
 - py -m venv .venv [create virtual environment (local sandbox)]
@@ -23,6 +22,10 @@ Test follows prompt, navigates web, validates and produces traces of navigation 
 3. Browser Installation For Playwright - Chromium/Firefox/Webkit
 
    - command from root folder - "playwright install" [use this command from project root folder after installing packages in activated virtual environment. (U should see .venv in your command prompt or pyproject.toml project name in case uv is used)
+   - Note - Under VPN, command may fail due to firewall restrictions, without VPN connection, it may work
+   - browser specific installation -
+     - "playwright install {x}" [x = chromium|firefox|webkit]
+     - for headless - "playwright install --only-shell chromium"
 
    1. Troubleshooting
 
