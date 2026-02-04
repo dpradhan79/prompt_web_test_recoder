@@ -9,7 +9,7 @@ Test follows prompt, navigates web, validates and produces traces of navigation 
 ### - Virtual Environment
 
 - py -m venv .venv [create virtual environment (local sandbox)]
-  Command - .venv/Scripts/activate.bat [for pip, this step is mandatory for activating virtual environment]
+  Command - .venv\Scripts\activate.bat [for pip, this step is mandatory for activating virtual environment]
   pip install -r requirements.txt [installation of module dependencies as per file - requirements.txt]
 
 #### 2. uv
