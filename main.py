@@ -12,6 +12,11 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from constant.const_config import PARENT_DIR
+
+ROOT = PARENT_DIR
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 import dotenv
 
 from dataclass.conceptual_objects import Intents
