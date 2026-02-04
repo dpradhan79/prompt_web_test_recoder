@@ -19,19 +19,27 @@ Test follows prompt, navigates web, validates and produces traces of navigation 
 
 #### 
 
-3. Browser Installation For Playwright - Chromium/Firefox/Webkit
+#### 3. Browser Installation For Playwright - Chromium/Firefox/Webkit
 
-   - command from root folder - "playwright install" [use this command from project root folder after installing packages in activated virtual environment. (U should see .venv in your command prompt or pyproject.toml project name in case uv is used)
-   - Note - Under VPN, command may fail due to firewall restrictions, without VPN connection, it may work
-   - browser specific installation -
-     - "playwright install {x}" [x = chromium|firefox|webkit]
-     - for headless - "playwright install --only-shell chromium"
+- command from root folder - "playwright install" [use this command from project root folder after installing packages in activated virtual environment. (U should see .venv in your command prompt or pyproject.toml project name in case uv is used)
+- Note - Under VPN, command may fail due to firewall restrictions, without VPN connection, it may work
+- browser specific installation -
 
-   1. Troubleshooting
+  - "playwright install {x}" [x = chromium|firefox|webkit]
+  - for headless - "playwright install --only-shell chromium"
 
-      - some modules not installed due to error -  hardlinking may not be supporte
-        - delete .venv folder (virtual environment folder)
-        - Apply command - uv sync --link-mode=copy
-      - To Use Particular Python Version
-        - update pyproject.toml -> requires-python
-        - Apply command - uv pin python <x.y> ex - uv pin python 3.11
+#### Troubleshooting
+
+- some modules not installed due to error -  hardlinking may not be supported
+
+  - delete .venv folder (virtual environment folder)
+  - Apply command - uv sync --link-mode=copy
+- delete .venv folder (virtual environment folder)
+- Apply command - uv sync --link-mode=copy
+- To Use Particular Python Version
+
+  - update pyproject.toml -> requires-python
+  - Apply command - uv pin python <x.y> ex - uv pin python 3.11
+- ensure you have .env file in root folder and you have key for variable/value for LLM secret key
+
+  - API_KEY=1234
