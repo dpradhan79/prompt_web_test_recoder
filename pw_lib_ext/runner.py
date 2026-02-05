@@ -18,6 +18,7 @@ from dataclass.conceptual_objects import Step, WaitConfig, artifacts_to_json_dic
 from pw_lib_ext.config import AppConfig
 from llm_service.grounder import Grounder
 from pw_lib_ext.locator import LocatorResolver
+from pw_lib_ext.step_exporter import _locator_to_playwright
 
 NAV_WAIT_MAP = {
     "domReady": "domcontentloaded",
@@ -70,11 +71,12 @@ class PWStepExecutor:
         self._page = self._ctx.new_page()
 
     def close(self):
+        self.run_log["endedAt"] = datetime.now(ZoneInfo("Asia/Kolkata")).isoformat(timespec="seconds") + "Z"
         if self._page: self._page.close()
         if self._ctx: self._ctx.close()
         if self._browser: self._browser.close()
         if self._pw: self._pw.stop()
-        self.run_log["endedAt"] = datetime.now(ZoneInfo("Asia/Kolkata")).isoformat(timespec="seconds") + "Z"
+
 
     # ---------- utilities ----------
     def _log_step(self, entry: Dict[str, Any]):
@@ -129,7 +131,7 @@ class PWStepExecutor:
                 "index": step_no, "intent": step.intent, "action": step.action,
                 "urlBefore": url_before, "urlAfter": None,
                 "locatorTried": [], "chosenLocator": None,
-                "altLocatorsUsed": False, "confidence": None,
+                "altLocatorsUsed": False, "confidence": step.confidence,
                 "wait": step.wait.__dict__, "artifacts": {}, "timingsMs": {}, "status": "pending", "notes": ""
             }
 
@@ -166,7 +168,8 @@ class PWStepExecutor:
                     raise RuntimeError("Unable to resolve a unique visible locator.")
 
                 pw_loc = resolved.pw_locator
-                step.confidence = resolved.confidence
+                #LLM Based confidence is used, Locator based weightage is not used
+                #step.confidence = resolved.confidence
                 step.altLocators = resolved.alternates
 
                 # Execute
