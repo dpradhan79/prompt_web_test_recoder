@@ -50,7 +50,7 @@ class SelfHealing:
 @dataclass
 class GroundingConfig:
     locatorPriority: list[str] = field(default_factory=lambda: [
-        "role", "label", "dataTestId", "aria", "text", "placeholder", "css", "xpath", "relative"
+        "id", "name", "class", "role", "label", "dataTestId", "aria", "text", "placeholder", "css", "xpath", "relative"
     ])
     maxAltLocatorsPerStep: int = 3
     minConfidenceToRequireAlt: float = 0.85
