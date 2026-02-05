@@ -14,9 +14,8 @@ from dataclass.conceptual_objects import Locator
 # Strategy weights for confidence calculation (heuristic)
 STRATEGY_WEIGHT = {
     ".*test.*": 1.0,
-    "dataTestId": 0.95,
-    "id": 0.9,
-    "name": 0.95,
+    "id": 0.95,
+    "name": 0.9,
     "role": 0.8,
     "label": 0.75,
     "text": 0.70,
@@ -50,11 +49,15 @@ class LocatorResolver:
 
     def _to_pw(self, l: Locator) -> PwLocator:
         if l.strategy == "id":
-            return self.page.locator(f'{l.strategy}={l.name}').nth(l.index)
+            return (self.page.locator(f'{l.strategy}={l.name}').nth(l.index)
+                    if self.page.locator(f'{l.strategy}={l.name}').nth(l.index).count()>0
+                    else self.page.locator(f'{l.strategy}={l.value}').nth(l.index) )
         if l.strategy == "name":
-            return self.page.locator(f'[{l.strategy}={l.name}]').nth(l.index)
+            return (self.page.locator(f'[{l.strategy}={l.name}]').nth(l.index)
+                    if self.page.locator(f'[{l.strategy}={l.name}]').nth(l.index).count()>0
+                    else self.page.locator(f'[{l.strategy}={l.value}]').nth(l.index))
         if l.strategy == "class":
-            return self.page.locator(f'[{l.strategy}*={l.name}]').nth(l.index)
+            return self.page.locator(f'[{l.strategy}*={l.value}]').nth(l.index)
         if l.strategy == "testHook":
             return self.page.locator(f'[{l.name}={l.value}]').nth(l.index)
         if l.strategy == "role":

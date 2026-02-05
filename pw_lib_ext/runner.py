@@ -71,11 +71,12 @@ class PWStepExecutor:
         self._page = self._ctx.new_page()
 
     def close(self):
+        self.run_log["endedAt"] = datetime.now(ZoneInfo("Asia/Kolkata")).isoformat(timespec="seconds") + "Z"
         if self._page: self._page.close()
         if self._ctx: self._ctx.close()
         if self._browser: self._browser.close()
         if self._pw: self._pw.stop()
-        self.run_log["endedAt"] = datetime.now(ZoneInfo("Asia/Kolkata")).isoformat(timespec="seconds") + "Z"
+
 
     # ---------- utilities ----------
     def _log_step(self, entry: Dict[str, Any]):
