@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "POC Workflow Schema (Minimal Scaffold + Screenshots)",
+  "description": "Very relaxed schema with only top-level placeholders; all fields optional. Includes optional placeholders for screenshots.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {},
+    "stage": {},
+    "runId": {},
+    "status": {},
+    "constraintsApplied": { "type": "array", "items": {} },
+
+    "sourceContext": { "type": "object", "additionalProperties": true },
+    "executionContext": { "type": "object", "additionalProperties": true },
+
+    "pages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "pageGuid": {},
+          "url": {},
+          "snapshots": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "snapshotId": {},
+                "triggeredByStepNo": {},
+                "capturedAt": {},
+                "storageRef": {},
+                "hash": {}
+              },
+              "additionalProperties": true
+            }
+          },
+          "screenshots": {
+            "type": "array",
+            "description": "Optional screenshots captured for this page",
+            "items": {
+              "type": "object",
+              "properties": {
+                "snapshotId": {},
+                "triggeredByStepNo": {},
+                "capturedAt": {},
+                "storageRef": {},
+                "hash": {},
+                "domSnapshotId": {}
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+
+    "stepBindings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "stepNo": {},
+          "stepName": {},
+          "description": {},
+          "pageGuid": {},
+          "domSnapshotId": {},
+
+          "targetHint": {
+            "type": "object",
+            "properties": {
+              "role": {},
+              "label": {}
+            },
+            "additionalProperties": true
+          },
+
+          "locatorCandidates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "rank": {},
+                "tier": {},
+                "type": {},
+                "value": {},
+                "matchCount": {},
+                "stability": {},
+                "why": {}
+              },
+              "additionalProperties": true
+            }
+          },
+
+          "chosenLocator": {
+            "type": "object",
+            "properties": {
+              "tier": {},
+              "type": {},
+              "value": {}
+            },
+            "additionalProperties": true
+          },
+
+          "evidence": {
+            "type": "object",
+            "properties": {
+              "elementFingerprint": {
+                "type": "object",
+                "properties": {
+                  "tag": {},
+                  "attributes": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                },
+                "additionalProperties": true
+              },
+              "outerHtmlSnippet": {}
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+
+    "unboundSteps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "stepNo": {},
+          "stepName": {},
+          "reason": {},
+          "recommendation": {}
+        },
+        "additionalProperties": true
+      }
+    },
+
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "stepNo": {},
+          "reason": {}
+        },
+        "additionalProperties": true
+      }
+    },
+
+    "artifacts": {
+      "type": "object",
+      "properties": {
+        "a4JsonRef": {},
+        "domSnapshotRefs": {
+          "type": "array",
+          "items": {}
+        },
+        "screenSnapshotRefs": {
+          "type": "array",
+          "description": "Optional references to screenshot files (paths/URIs)",
+          "items": {}
+        },
+        "logRef": {}
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true"
+}

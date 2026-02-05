@@ -13,13 +13,15 @@ from dataclass.conceptual_objects import Locator
 
 # Strategy weights for confidence calculation (heuristic)
 STRATEGY_WEIGHT = {
-    "role": 1.0,
-    "label": 0.95,
-    "dataTestId": 0.9,
-    "aria": 0.85,
-    "text": 0.8,
-    "placeholder": 0.75,
-    "css": 0.6,
+    ".*test.*": 1.0,
+    "id": 0.95,
+    "name": 0.9,
+    "role": 0.8,
+    "label": 0.75,
+    "text": 0.70,
+    "aria": 0.65,
+    "placeholder": 0.6,
+    "css": 0.5,
     "xpath": 0.45,
     "relative": 0.4,
 }
@@ -46,6 +48,18 @@ class LocatorResolver:
         self.locale = locale
 
     def _to_pw(self, l: Locator) -> PwLocator:
+        if l.strategy == "id":
+            return (self.page.locator(f'{l.strategy}={l.name}').nth(l.index)
+                    if self.page.locator(f'{l.strategy}={l.name}').nth(l.index).count()>0
+                    else self.page.locator(f'{l.strategy}={l.value}').nth(l.index) )
+        if l.strategy == "name":
+            return (self.page.locator(f'[{l.strategy}={l.name}]').nth(l.index)
+                    if self.page.locator(f'[{l.strategy}={l.name}]').nth(l.index).count()>0
+                    else self.page.locator(f'[{l.strategy}={l.value}]').nth(l.index))
+        if l.strategy == "class":
+            return self.page.locator(f'[{l.strategy}*={l.value}]').nth(l.index)
+        if l.strategy == "testHook":
+            return self.page.locator(f'[{l.name}={l.value}]').nth(l.index)
         if l.strategy == "role":
             return self.page.get_by_role(l.role, name=l.name).nth(l.index)
 
@@ -84,27 +98,28 @@ class LocatorResolver:
 
     def _confidence(self, primary: Locator, visible_count: int) -> float:
         base = STRATEGY_WEIGHT.get(primary.strategy, 0.3)
-        uniq_bonus = 0.25 if visible_count == 1 else 0.0
-        return max(0.0, min(1.0, base + uniq_bonus))
+        # uniq_bonus = 0.25 if visible_count == 1 else 0.0
+        # return max(0.0, min(1.0, base + uniq_bonus))
+        return base
 
-    def resolve(self, candidates: List[Locator]) -> Optional[ResolvedLocator]:
-        alternates: List[Locator] = []
-        chosen: Optional[Locator] = None
-        chosen_pw: Optional[PwLocator] = None
+    def resolve(self, locators: List[Locator]) -> Optional[ResolvedLocator]:
+        alternateLocators: List[Locator] = []
+        chosen_locator: Optional[Locator] = None
+        chosen_pw_locator: Optional[PwLocator] = None
         conf = 0.0
         seen = 0
 
-        for cand in candidates:
-            pw = self._to_pw(cand)
+        for locator in locators:
+            pw = self._to_pw(locator)
             is_unique, visible_count = self._visible_unique(pw)
-            if is_unique and chosen is None:
-                chosen, chosen_pw = cand, pw
-                conf = self._confidence(cand, visible_count)
+            if is_unique and chosen_locator is None:
+                chosen_locator, chosen_pw_locator = locator, pw
+                conf = self._confidence(locator, visible_count)
             else:
                 if seen < self.max_alts:
-                    alternates.append(cand)
+                    alternateLocators.append(locator)
                     seen += 1
 
-        if chosen and chosen_pw:
-            return ResolvedLocator(primary=chosen, alternates=alternates, confidence=conf, pw_locator=chosen_pw)
+        if chosen_locator and chosen_pw_locator:
+            return ResolvedLocator(primary=chosen_locator, alternates=alternateLocators, confidence=conf, pw_locator=chosen_pw_locator)
         return None

@@ -27,13 +27,13 @@ class AbstractLLMClient(ABC):
             f'base_url: {self.base_url}, api_version: {self.api_version}, model: {self.model}, client: {client_msg}')
 
     def execute_chat_completion_api(self, message: List[Dict], response_format=None,
-                                    temperature=0.2, max_tokens=16000
+                                    temperature=0, max_tokens=16000
                                     ) -> str:
         if response_format is None:
             response_format = dict(
                 type="json_object")
         success: bool = False
-        MAX_ATTEMPT_COUNTER = 2
+        MAX_ATTEMPT_COUNTER = 10
         attempt_counter = 1
         while not success and attempt_counter <= MAX_ATTEMPT_COUNTER:
             print(f'Fetching LLM Chat Completion API Response (Attempt Counter) - {attempt_counter}')
