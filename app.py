@@ -5,13 +5,10 @@ Date                    Author                          Change Details
 
 """
 import json
-#TODO - Verify When popup select uses aria when strategy is text
-#TODO - ensure id, name, class are prioritized
-#TODO - output is new defined structure
 import logging
 import os
 import sys
-import time
+
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -275,7 +272,7 @@ CSS snippets and regex helpers for detecting “test” in attributes across eng
 
     # endregion
 
-    # region LLM Initialization (LLM Control In LLMClient Interface, Needs Control At Top Layer..TODO)
+    # region LLM Initialization (LLM Control In LLMClient Interface, Needs Control At Top Layer.)
     # Use LLM client (One can Toggle Between Various LLM Models, Its Abstracted In LLMClient)
 
     # API_BASE = "https://aiml04openai.openai.azure.com"
@@ -568,7 +565,9 @@ run_log.json:
     ]
     response = llm_client.execute_chat_completion_api(message=messages, response_format={"type": "json_object"})
     output_json_file.write_text(json.dumps(response, indent=2), encoding='utf-8')
-
+    msg = f'Comprehensive Workflow output - {output_json_file}'
+    print(msg)
+    logger.info(msg)
 
     #endregion
 
