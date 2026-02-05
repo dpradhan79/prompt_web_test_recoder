@@ -11,6 +11,7 @@ ActionType = Literal[
     "hover", "scroll", "waitFor", "assert_text", "assert_visible", "assert_match", "custom"
 ]
 
+#TODO - To Add id/name/class also
 LocatorStrategyType = Literal[
     "role", "label", "dataTestId", "aria", "text", "placeholder", "css", "xpath", "relative"
 ]
