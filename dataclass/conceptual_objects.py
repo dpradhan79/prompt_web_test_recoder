@@ -1,6 +1,6 @@
 """
 Date                    Author                          Change Details
-02-02-2026              Debasish.P                      Data Structure To Various Conceptual Work Items
+02-02-2026              Coforge                         Data Structure To Various Conceptual Work Items
 """
 import json
 from dataclasses import dataclass, field, asdict
@@ -11,9 +11,8 @@ ActionType = Literal[
     "hover", "scroll", "waitFor", "assert_text", "assert_visible", "assert_match", "custom"
 ]
 
-#TODO - To Add id/name/class also
 LocatorStrategyType = Literal[
-    "role", "label", "dataTestId", "aria", "text", "placeholder", "css", "xpath", "relative"
+    "id", "name", "class", "role", "label", "dataTestId", "aria", "text", "placeholder", "css", "xpath", "relative"
 ]
 
 WaitType = Literal["domReady", "load", "networkIdle"]

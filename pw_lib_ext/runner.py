@@ -1,6 +1,6 @@
 """
 Date                    Author                          Change Details
-02-02-2026              Debasish.P                      Step Executor
+02-02-2026              Coforge                      Step Executor
 
 """
 import json
@@ -240,6 +240,10 @@ class PWStepExecutor:
                 autosuggest_flag = False
                 if self.cfg.grounding.artifactPolicy.captureOnAutoSuggestVisible:
                     autosuggest_flag = self._autosuggest_appeared()
+
+                self._page.wait_for_load_state()
+                self._page.wait_for_load_state("domcontentloaded")
+
                 time.sleep(2)  # TODO - Find a way to verify if page completely loaded before taking screenshot
                 dom_id, sc_id = self._capture_artifacts_if_needed(url_before, autosuggest_visible=autosuggest_flag)
                 step.domReference, step.screenReference = dom_id, sc_id

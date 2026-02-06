@@ -1,6 +1,6 @@
 """
 Date                    Author                          Change Details
-02-02-2026              Debasish.P                      Data Structure For Configuration
+02-02-2026              Coforge                      Data Structure For Configuration
 """
 from dataclasses import dataclass, field
 from typing import Literal, Dict, Any

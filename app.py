@@ -1,7 +1,7 @@
 # app.py
 """
 Date                    Author                          Change Details
-02-02-2026              Debasish.P                      Main Script (Wiring)
+02-02-2026              Coforge                         Main Script (Wiring)
 
 """
 import json
@@ -67,6 +67,7 @@ def main():
     cfg.browser.headless = False
     cfg.browser.slowMoMs = 250
     cfg.browser.locale = "en-IN"
+    cfg.browser.recordVideo = True
 
     #------------
 

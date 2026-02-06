@@ -1,6 +1,6 @@
 """
 Date                    Author                          Change Details
-02-02-2026              Debasish.P                      Find accurate locator
+02-02-2026              Coforge                      Find accurate locator
 
 
 """
@@ -98,9 +98,9 @@ class LocatorResolver:
 
     def _confidence(self, primary: Locator, visible_count: int) -> float:
         base = STRATEGY_WEIGHT.get(primary.strategy, 0.3)
-        # uniq_bonus = 0.25 if visible_count == 1 else 0.0
-        # return max(0.0, min(1.0, base + uniq_bonus))
-        return base
+        uniq_bonus = 0.25 if visible_count == 1 else 0.0
+        return max(0.0, min(1.0, base + uniq_bonus))
+        #return base
 
     def resolve(self, locators: List[Locator]) -> Optional[ResolvedLocator]:
         alternateLocators: List[Locator] = []
