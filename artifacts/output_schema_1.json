@@ -132,6 +132,7 @@
         "properties": {
           "stepNo": {},
           "stepName": {},
+          "description": {},
           "reason": {},
           "recommendation": {}
         },

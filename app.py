@@ -1,4 +1,4 @@
-# main.py
+# app.py
 """
 Date                    Author                          Change Details
 02-02-2026              Debasish.P                      Main Script (Wiring)
@@ -415,7 +415,8 @@ TOP-LEVEL FIELDS:
       - hash: include only if explicitly provided (do NOT compute)
       - domSnapshotId: link to the nearest "dom-XXXX" if you can confidently map by time/url/reference; else omit
 - stepBindings:
-  - For each executed step in run_log.steps:
+  - Keep it empty array if there are no passed steps
+  - For each passed executed step in run_log.steps:
     - stepNo: run_log.steps.index
     - stepName: the action (e.g., "navigate", "click", "press_sequentially")
     - description: use the intent from plan or run_log if provided
@@ -438,7 +439,14 @@ TOP-LEVEL FIELDS:
         - attributes: include only attributes explicitly implied by chosen locator or candidates (e.g., class, placeholder, href substring, aria-label). Do NOT invent.
       - outerHtmlSnippet: OMIT unless a verbatim snippet is provided in inputs.
 
-- unboundSteps: steps that couldn’t be resolved or were skipped; include reason + recommendation
+- unboundSteps: steps that couldn’t be resolved or were failed or were skipped; include reason + recommendation
+  - For each passed executed step in run_log.steps:
+    - stepNo: run_log.steps.index
+    - stepName: the action (e.g., "navigate", "click", "press_sequentially")
+    - description: use the intent from plan or run_log if provided
+    - reason: use the notes from run_log if provided
+    - recommendation: Reflect your best recommendation based on run_log if provided
+  
 - warnings: array of { stepNo, reason } for ambiguity, index-based fragility, or when a stronger evidenced candidate exists than what was executed
 - artifacts:
   - a4JsonRef: if a canonical A4 step bindings file path exists in inputs, include it; else include the most relevant source file path or omit
