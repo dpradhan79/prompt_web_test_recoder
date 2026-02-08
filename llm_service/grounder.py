@@ -7,18 +7,21 @@ Date                    Author                          Change Details
 """
 import base64
 import json
+import logging
 import re
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
+from bs4 import BeautifulSoup, Comment
+
 from dataclass.conceptual_objects import (
-    Intents, IntentItem, get_intents_from_json_str, get_intents_from_dict, Step, Locator, WaitConfig, step_from_json_obj
+    Intents, IntentItem, get_intents_from_json_str, get_intents_from_dict, Step, Locator, WaitConfig, json_obj_to_step
 )
-from pw_lib_ext.config import AppConfig
 from llm_service.abstract_llm_client import AbstractLLMClient
+from pw_lib_ext.config import AppConfig
 
 
-def _read_text_safe(path: str, limit: int = 200_000) -> str:
+def _read_text_safe(path: str, limit: int = 5_000_000) -> str:
     """
     Read a text file safely, trimming to 'limit' characters if needed.
     Returns an empty string on error or missing path.
@@ -31,8 +34,8 @@ def _read_text_safe(path: str, limit: int = 200_000) -> str:
             half = limit // 2
             return txt[:half] + "\n...\n" + txt[-half:]
         return txt
-    except Exception:
-        return ""
+    except Exception as e:
+        raise e
 
 
 def _image_to_data_uri(path: str) -> str:
@@ -53,124 +56,180 @@ def _image_to_data_uri(path: str) -> str:
         return ""
 
 
-def _summarize_dom_for_llm(html: str, max_chars: int = 60_000) -> str:
+# def _summarize_dom_for_llm(html: str, max_chars: int = 60_000) -> str:
+#     """
+#     Build an LLM-friendly textual summary from raw HTML:
+#       - TITLE, OG tags
+#       - HEADINGS (h1..h6)
+#       - LINKS (<a> inner text)
+#       - BUTTONS (<button> inner text)
+#       - LABELS (<label> inner text)
+#       - PLACEHOLDERS (placeholder=... values)
+#     It deduplicates, normalizes whitespace, caps per-section sizes, and
+#     returns a single string. Always returns ('' for empty input).
+#     """
+#     if not html:
+#         return ""
+#
+#     # -------------------------------
+#     # 1) Extract
+#     # -------------------------------
+#     # Title
+#     title_m = re.search(r"<title[^>]*>(.*?)</title>", html, flags=re.I | re.S)
+#     title_txt = title_m.group(1).strip() if title_m else ""
+#
+#     # OpenGraph (best-effort: look for two common OG metas)
+#     og_title = re.findall(
+#         r'<meta[^>]+property=["\']og:title["\'][^>]+content=["\']([^"\']+)["\']',
+#         html, flags=re.I,
+#     )
+#     og_desc = re.findall(
+#         r'<meta[^>]+property=["\']og:description["\'][^>]+content=["\']([^"\']+)["\']',
+#         html, flags=re.I,
+#     )
+#
+#     # Headings, links, buttons, labels
+#     headings = re.findall(r"<h[1-6][^>]*>(.*?)</h[1-6]>", html, flags=re.I | re.S)
+#     links = re.findall(r"<a\b[^>]*>(.*?)</a>", html, flags=re.I | re.S)
+#     buttons = re.findall(r"<button\b[^>]*>(.*?)</button>", html, flags=re.I | re.S)
+#     labels = re.findall(r"<label\b[^>]*>(.*?)</label>", html, flags=re.I | re.S)
+#
+#     # Placeholders (attribute values)
+#     placeholders = re.findall(r'\bplaceholder\s*=\s*"(.*?)"', html, flags=re.I)
+#     placeholders += re.findall(r"\bplaceholder\s*=\s*'(.*?)'", html, flags=re.I)
+#
+#     # -------------------------------
+#     # 2) Normalize (strip tags, collapse whitespace)
+#     # -------------------------------
+#     def strip_html(text: str) -> str:
+#         text = re.sub(r"<[^>]+>", "", text)  # remove tags
+#         text = re.sub(r"\s+", " ", text).strip()  # collapse spaces
+#         return text
+#
+#     headings = [strip_html(h) for h in headings]
+#     links = [strip_html(x) for x in links]
+#     buttons = [strip_html(x) for x in buttons]
+#     labels = [strip_html(x) for x in labels]
+#     placeholders = [re.sub(r"\s+", " ", x).strip() for x in placeholders]
+#
+#     # -------------------------------
+#     # 3) Deduplicate + cap sections
+#     # -------------------------------
+#     def clean_cap(items, join_cap_chars: int, max_item_len: int = 2000):
+#         out, seen = [], set()
+#         running = 0
+#         for it in items:
+#             if not it or len(it) < 2:
+#                 continue
+#             if len(it) > max_item_len:
+#                 it = it[:max_item_len] + "…"
+#             key = it.lower()
+#             if key in seen:
+#                 continue
+#             seen.add(key)
+#             out.append(it)
+#             running += len(it) + 3  # approx " | "
+#             if running >= join_cap_chars:
+#                 break
+#         return out
+#
+#     headings = clean_cap(headings, 1500)
+#     links = clean_cap(links, 2500)
+#     buttons = clean_cap(buttons, 1000)
+#     labels = clean_cap(labels, 2000)
+#     placeholders = clean_cap(placeholders, 500)
+#
+#     # -------------------------------
+#     # 4) Assemble sections
+#     # -------------------------------
+#     parts = []
+#     if title_txt:
+#         parts.append(f"TITLE: {title_txt}")
+#     if og_title:
+#         parts.append("OG_TITLE: " + " | ".join(og_title))
+#     if og_desc:
+#         parts.append("OG_DESC: " + " | ".join(og_desc))
+#     if headings:
+#         parts.append("HEADINGS: " + " | ".join(headings))
+#     if links:
+#         parts.append("LINKS: " + " | ".join(links))
+#     if buttons:
+#         parts.append("BUTTONS: " + " | ".join(buttons))
+#     if labels:
+#         parts.append("LABELS: " + " | ".join(labels))
+#     if placeholders:
+#         parts.append("PLACEHOLDERS: " + " | ".join(placeholders))
+#
+#     summary = "\n".join(parts)
+#
+#     # -------------------------------
+#     # 5) Final clamp and RETURN
+#     # -------------------------------
+#     if len(summary) > max_chars:
+#         half = max_chars // 2
+#         summary = summary[:half] + "\n...\n" + summary[-half:]
+#
+#     return summary
+
+
+def sanitize_html_for_llm(html: str, max_attr_len: int = 1024) -> str:
     """
-    Build an LLM-friendly textual summary from raw HTML:
-      - TITLE, OG tags
-      - HEADINGS (h1..h6)
-      - LINKS (<a> inner text)
-      - BUTTONS (<button> inner text)
-      - LABELS (<label> inner text)
-      - PLACEHOLDERS (placeholder=... values)
-    It deduplicates, normalizes whitespace, caps per-section sizes, and
-    returns a single string. Always returns ('' for empty input).
+    Strip non-structural noise before sending to LLM:
+    - remove <script>, <style>, <noscript>, <template>, and HTML comments
+    - trim overly long attribute values (e.g., base64 data URIs)
+    - drop inline event handlers (on*)
+    - keep structural & interactive semantics (roles, inputs, buttons, links)
     """
     if not html:
         return ""
 
-    # -------------------------------
-    # 1) Extract
-    # -------------------------------
-    # Title
-    title_m = re.search(r"<title[^>]*>(.*?)</title>", html, flags=re.I | re.S)
-    title_txt = title_m.group(1).strip() if title_m else ""
+    soup = BeautifulSoup(html, "html.parser")
 
-    # OpenGraph (best-effort: look for two common OG metas)
-    og_title = re.findall(
-        r'<meta[^>]+property=["\']og:title["\'][^>]+content=["\']([^"\']+)["\']',
-        html, flags=re.I,
-    )
-    og_desc = re.findall(
-        r'<meta[^>]+property=["\']og:description["\'][^>]+content=["\']([^"\']+)["\']',
-        html, flags=re.I,
-    )
+    # Remove non-structural nodes
+    for tag_name in ("script", "style", "noscript", "template"):
+        for t in soup.find_all(tag_name):
+            t.decompose()
 
-    # Headings, links, buttons, labels
-    headings = re.findall(r"<h[1-6][^>]*>(.*?)</h[1-6]>", html, flags=re.I | re.S)
-    links = re.findall(r"<a\b[^>]*>(.*?)</a>", html, flags=re.I | re.S)
-    buttons = re.findall(r"<button\b[^>]*>(.*?)</button>", html, flags=re.I | re.S)
-    labels = re.findall(r"<label\b[^>]*>(.*?)</label>", html, flags=re.I | re.S)
+    # Remove HTML comments
+    for c in soup.find_all(string=lambda s: isinstance(s, Comment)):
+        c.extract()
 
-    # Placeholders (attribute values)
-    placeholders = re.findall(r'\bplaceholder\s*=\s*"(.*?)"', html, flags=re.I)
-    placeholders += re.findall(r"\bplaceholder\s*=\s*'(.*?)'", html, flags=re.I)
+    # Trim very long attribute values & remove event handlers
+    for el in soup.find_all(True):
+        # remove inline event handlers
+        for attr in list(el.attrs.keys()):
+            if attr.lower().startswith("on"):
+                del el.attrs[attr]
+        # clamp attribute values
+        for attr, val in list(el.attrs.items()):
+            if isinstance(val, list):
+                el.attrs[attr] = [
+                    (v[:max_attr_len] + "…") if isinstance(v, str) and len(v) > max_attr_len else v
+                    for v in val
+                ]
+            elif isinstance(val, str) and len(val) > max_attr_len:
+                el.attrs[attr] = val[:max_attr_len] + "…"
 
-    # -------------------------------
-    # 2) Normalize (strip tags, collapse whitespace)
-    # -------------------------------
-    def strip_html(text: str) -> str:
-        text = re.sub(r"<[^>]+>", "", text)  # remove tags
-        text = re.sub(r"\s+", " ", text).strip()  # collapse spaces
-        return text
+    return str(soup)
 
-    headings = [strip_html(h) for h in headings]
-    links = [strip_html(x) for x in links]
-    buttons = [strip_html(x) for x in buttons]
-    labels = [strip_html(x) for x in labels]
-    placeholders = [re.sub(r"\s+", " ", x).strip() for x in placeholders]
 
-    # -------------------------------
-    # 3) Deduplicate + cap sections
-    # -------------------------------
-    def clean_cap(items, join_cap_chars: int, max_item_len: int = 2000):
-        out, seen = [], set()
-        running = 0
-        for it in items:
-            if not it or len(it) < 2:
-                continue
-            if len(it) > max_item_len:
-                it = it[:max_item_len] + "…"
-            key = it.lower()
-            if key in seen:
-                continue
-            seen.add(key)
-            out.append(it)
-            running += len(it) + 3  # approx " | "
-            if running >= join_cap_chars:
-                break
-        return out
-
-    headings = clean_cap(headings, 1500)
-    links = clean_cap(links, 2500)
-    buttons = clean_cap(buttons, 1000)
-    labels = clean_cap(labels, 2000)
-    placeholders = clean_cap(placeholders, 500)
-
-    # -------------------------------
-    # 4) Assemble sections
-    # -------------------------------
-    parts = []
-    if title_txt:
-        parts.append(f"TITLE: {title_txt}")
-    if og_title:
-        parts.append("OG_TITLE: " + " | ".join(og_title))
-    if og_desc:
-        parts.append("OG_DESC: " + " | ".join(og_desc))
-    if headings:
-        parts.append("HEADINGS: " + " | ".join(headings))
-    if links:
-        parts.append("LINKS: " + " | ".join(links))
-    if buttons:
-        parts.append("BUTTONS: " + " | ".join(buttons))
-    if labels:
-        parts.append("LABELS: " + " | ".join(labels))
-    if placeholders:
-        parts.append("PLACEHOLDERS: " + " | ".join(placeholders))
-
-    summary = "\n".join(parts)
-
-    # -------------------------------
-    # 5) Final clamp and RETURN
-    # -------------------------------
+def _summarize_dom_for_llm(html: str, max_chars: int = 5_000_000) -> str:
+    """
+        Produce a clean, LLM-friendly DOM text. We run BeautifulSoup.prettify()
+        on the already sanitized HTML to preserve meaningful structure/semantics.
+        """
+    if not html:
+        return ""
+    soup = BeautifulSoup(html, "html.parser")
+    summary = soup.prettify()
     if len(summary) > max_chars:
         half = max_chars // 2
         summary = summary[:half] + "\n...\n" + summary[-half:]
-
     return summary
 
 
 # --------- LLM client abstraction ---------
-class LLMClient:
+class LLMAgent:
     """
     LLM client with two distinct prompts:
       - intents_prompt  : Phase-1 (plain English -> intents JSON)
@@ -213,7 +272,7 @@ class LLMClient:
         if dom_text:
             user_content.append({"type": "text", "text": f"ARTIFACT_DOM_SUMMARY:\n{dom_text}"})
         if img_data_uri:
-            user_content.append({"type": "image_url", "image_url": {"url": img_data_uri, "detail": "low"}})
+            user_content.append({"type": "image_url", "image_url": {"url": img_data_uri, "detail": "high"}})
 
         messages = [
 
@@ -245,99 +304,6 @@ class LLMClient:
         response: dict = self.llm_client.execute_chat_completion_api(messages, response_format={"type": "json_object"})
         self.llm_client.add_chat_history({"role": "assistant", "content": json.dumps(response)})
         return response
-
-
-# --------- Mock LLM client (deterministic, no network) ---------
-class MockLLMClient(LLMClient):
-    """
-    A deterministic mock for local/dev:
-    - extract_intents: produces clean intents JSON from free-form prompt
-    - complete_json: produces a single grounded step (approximate) as JSON array
-    """
-
-    def extract_intents(self, user_prompt: str) -> Dict[str, Any]:
-        intents_dc = _extract_intents_without_llm(user_prompt)
-        return {"intents": [{"step": i.step_no, "intent": i.intent} for i in intents_dc.intents]}
-
-    def get_playwright_json(self, user_payload: Dict[str, Any]) -> List[Dict[str, Any]]:
-        intent = user_payload.get("intent", "")
-        dom_ref = int(user_payload.get("domReference", 0))
-        sc_ref = int(user_payload.get("screenReference", 0))
-
-        intent_low = intent.lower()
-        # Simple, codegen-like locators
-        if intent_low.startswith("open "):
-            url_match = re.search(r'(https?://\S+)', intent)
-            url = url_match.group(1) if url_match else None
-            step = {
-                "intent": intent,
-                "action": "navigate",
-                "input": url,
-                "locator": {"strategy": "aria", "role": None, "name": None, "value": "url", "frame": None},
-                "altLocators": [],
-                "wait": {"type": "domReady", "timeoutMs": 15000},
-                "reason": "Navigate to the target URL.",
-                "confidence": 1.0,
-                "expectedText": None,
-                "pattern": None,
-                "domReference": dom_ref,
-                "screenReference": sc_ref
-            }
-            return [step]
-
-        if intent_low.startswith("enter "):
-            val = re.sub(r'(?i)^enter\s+', '', intent).strip()
-            step = {
-                "intent": intent,
-                "action": "fill",
-                "input": val,
-                "locator": {"strategy": "label", "role": None, "name": "Location", "value": "Location", "frame": None},
-                "altLocators": [
-                    {"strategy": "placeholder", "role": None, "name": None, "value": "Search", "frame": None}
-                ],
-                "wait": {"type": "domReady", "timeoutMs": 10000},
-                "reason": "Type into a search/location field.",
-                "confidence": 0.85,
-                "expectedText": None,
-                "pattern": None,
-                "domReference": dom_ref,
-                "screenReference": sc_ref
-            }
-            return [step]
-
-        if any(k in intent_low for k in ["read", "fetch", "capture", "get"]):
-            step = {
-                "intent": intent,
-                "action": "assert_match",
-                "input": None,
-                "locator": {"strategy": "text", "role": None, "name": None, "value": "jobs", "frame": None},
-                "altLocators": [],
-                "wait": {"type": "domReady", "timeoutMs": 10000},
-                "reason": "Verify the jobs count text.",
-                "confidence": 0.8,
-                "expectedText": None,
-                "pattern": r"/\b\d+\s+jobs\b/i",
-                "domReference": dom_ref,
-                "screenReference": sc_ref
-            }
-            return [step]
-
-        # Default clickable
-        step = {
-            "intent": intent,
-            "action": "click",
-            "input": None,
-            "locator": {"strategy": "text", "role": None, "name": None, "value": intent, "frame": None},
-            "altLocators": [],
-            "wait": {"type": "domReady", "timeoutMs": 10000},
-            "reason": "Click matching element.",
-            "confidence": 0.7,
-            "expectedText": None,
-            "pattern": None,
-            "domReference": dom_ref,
-            "screenReference": sc_ref
-        }
-        return [step]
 
 
 # --------- Grounder System Prompt builder (Phase-2) ---------
@@ -387,12 +353,16 @@ def build_grounder_system_prompt(cfg: AppConfig) -> str:
 
 
 # --------- Phase-1: Intent Extraction (LLM-first, deterministic fallback) ---------
-def extract_intents_dynamic(user_prompt: str, llm_client: Optional[LLMClient] = None) -> Intents:
+def extract_intents_dynamic(user_prompt: str, llm_client: Optional[LLMAgent] = None) -> Intents:
     if llm_client:
 
         out = llm_client.extract_intents(user_prompt=user_prompt)
         if isinstance(out, str):
+            logging.info(f'Intents - \n'
+                         f'{out}')
             return get_intents_from_json_str(out)
+        logging.info(f'Intents - \n'
+                     f'{json.dumps(out, indent=2)}')
         return get_intents_from_dict(out)
 
     return _extract_intents_without_llm(user_prompt)
@@ -496,7 +466,7 @@ class Grounder:
     If LLM is provided, uses it; else returns a heuristic step.
     """
 
-    def __init__(self, cfg: AppConfig, llm: Optional[LLMClient] = None):
+    def __init__(self, cfg: AppConfig, llm: Optional[LLMAgent] = None):
         self.cfg = cfg
         self.llm = llm
 
@@ -515,4 +485,8 @@ class Grounder:
                 "waitDefaults": self.cfg.grounding.waitDefaults.interaction
             }
             response = self.llm.get_playwright_json(payload)  # single dict
-            return step_from_json_obj(response)
+            logging.info(f'Intent to LLM: \n'
+                         f'{intent}\n'
+                         f'Step Returned By LLM : \n'
+                         f'{json.dumps(response, indent=2)}')
+            return json_obj_to_step(response)

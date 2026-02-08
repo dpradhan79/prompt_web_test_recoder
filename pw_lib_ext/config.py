@@ -5,7 +5,7 @@ Date                    Author                          Change Details
 from dataclasses import dataclass, field
 from typing import Literal, Dict, Any
 
-WaitType = Literal["domReady", "load", "networkIdle"]
+WaitType = Literal["domcontentloaded", "load", "networkIdle"]
 
 
 @dataclass
@@ -21,8 +21,8 @@ class BrowserConfig:
 
 @dataclass
 class WaitDefaults:
-    navigate: Dict[str, Any] = field(default_factory=lambda: {"type": "domReady", "timeoutMs": 10000})
-    interaction: Dict[str, Any] = field(default_factory=lambda: {"type": "domReady", "timeoutMs": 10000})
+    navigate: Dict[str, Any] = field(default_factory=lambda: {"type": "domcontentloaded", "timeoutMs": 10000})
+    interaction: Dict[str, Any] = field(default_factory=lambda: {"type": "domcontentloaded", "timeoutMs": 10000})
 
 
 @dataclass
@@ -50,7 +50,7 @@ class SelfHealing:
 @dataclass
 class GroundingConfig:
     locatorPriority: list[str] = field(default_factory=lambda: [
-        "id", "name", "class", "role", "label", "dataTestId", "aria", "text", "placeholder", "css", "xpath", "relative"
+        "id", "name", "class", "dataTestId", "role", "label", "aria", "text", "placeholder", "css", "xpath", "relative"
     ])
     maxAltLocatorsPerStep: int = 3
     minConfidenceToRequireAlt: float = 0.85

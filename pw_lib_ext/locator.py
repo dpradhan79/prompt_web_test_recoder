@@ -16,6 +16,7 @@ STRATEGY_WEIGHT = {
     ".*test.*": 1.0,
     "id": 0.95,
     "name": 0.9,
+    "class": 0.85,
     "role": 0.8,
     "label": 0.75,
     "text": 0.70,
@@ -48,14 +49,11 @@ class LocatorResolver:
         self.locale = locale
 
     def _to_pw(self, l: Locator) -> PwLocator:
+        # for strategy in self.priority:
         if l.strategy == "id":
-            return (self.page.locator(f'{l.strategy}={l.name}').nth(l.index)
-                    if self.page.locator(f'{l.strategy}={l.name}').nth(l.index).count()>0
-                    else self.page.locator(f'{l.strategy}={l.value}').nth(l.index) )
+            return self.page.locator(f'{l.strategy}={l.value}').nth(l.index)
         if l.strategy == "name":
-            return (self.page.locator(f'[{l.strategy}={l.name}]').nth(l.index)
-                    if self.page.locator(f'[{l.strategy}={l.name}]').nth(l.index).count()>0
-                    else self.page.locator(f'[{l.strategy}={l.value}]').nth(l.index))
+            return self.page.locator(f'[{l.strategy}={l.value}]').nth(l.index)
         if l.strategy == "class":
             return self.page.locator(f'[{l.strategy}*={l.value}]').nth(l.index)
         if l.strategy == "testHook":
@@ -100,7 +98,7 @@ class LocatorResolver:
         base = STRATEGY_WEIGHT.get(primary.strategy, 0.3)
         uniq_bonus = 0.25 if visible_count == 1 else 0.0
         return max(0.0, min(1.0, base + uniq_bonus))
-        #return base
+        # return base
 
     def resolve(self, locators: List[Locator]) -> Optional[ResolvedLocator]:
         alternateLocators: List[Locator] = []
@@ -121,5 +119,6 @@ class LocatorResolver:
                     seen += 1
 
         if chosen_locator and chosen_pw_locator:
-            return ResolvedLocator(primary=chosen_locator, alternates=alternateLocators, confidence=conf, pw_locator=chosen_pw_locator)
+            return ResolvedLocator(primary=chosen_locator, alternates=alternateLocators, confidence=conf,
+                                   pw_locator=chosen_pw_locator)
         return None

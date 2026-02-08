@@ -8,17 +8,15 @@ import re
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Tuple, Iterable
+from typing import List, Dict, Any, Optional, Tuple
 from zoneinfo import ZoneInfo
 
 from playwright.sync_api import sync_playwright, Playwright, Browser, BrowserContext, Page, expect
 
 from artifacts.artifacts import ArtifactManager
-from dataclass.conceptual_objects import Step, WaitConfig, artifacts_to_json_dict, steps_to_json, IntentItem
+from dataclass.conceptual_objects import Step, WaitConfig, artifacts_to_json_dict, steps_to_json
 from pw_lib_ext.config import AppConfig
-from llm_service.grounder import Grounder
 from pw_lib_ext.locator import LocatorResolver
-from pw_lib_ext.step_exporter import _locator_to_playwright
 
 NAV_WAIT_MAP = {
     "domReady": "domcontentloaded",
@@ -77,11 +75,18 @@ class PWStepExecutor:
         if self._browser: self._browser.close()
         if self._pw: self._pw.stop()
 
-
     # ---------- utilities ----------
     def _log_step(self, entry: Dict[str, Any]):
         if self.cfg.logging.verbosity == "verbose":
-            print(f"[STEP - {entry.get('index')}] {entry.get('intent')} -> {entry.get('status')}")
+            notes_found: str = entry.get("status")
+
+            if "passed" in notes_found.lower():  # Passed
+                print(f"[STEP - {entry.get('index')}] {entry.get('intent')} -> {entry.get('status')}")
+            else:
+                # failed
+                print(
+                    f"[STEP - {entry.get('index')}] {entry.get('intent')} -> {entry.get('status')} -> {entry.get('notes')}")
+
         self.run_log["steps"].append(entry)
 
     def _save_json(self, obj: Any, path: Path):
@@ -168,8 +173,8 @@ class PWStepExecutor:
                     raise RuntimeError("Unable to resolve a unique visible locator.")
 
                 pw_loc = resolved.pw_locator
-                #LLM Based confidence is used, Locator based weightage is not used
-                #step.confidence = resolved.confidence
+                # LLM Based confidence is used, Locator based weightage is not used
+                # step.confidence = resolved.confidence
                 step.altLocators = resolved.alternates
 
                 # Execute
@@ -231,20 +236,30 @@ class PWStepExecutor:
                     expect(pw_loc).to_have_text(regex, timeout=step.wait.timeoutMs)
                     if self.cfg.grounding.assertionAlsoCheckVisible:
                         expect(pw_loc).to_be_visible(timeout=step.wait.timeoutMs)
+                elif step.action == "assert_title":
+                    if step.input is not None:
+                        expect(self._page).to_have_title(step.input)
+                    else:
+                        raise ValueError('Input Is Not Provided')
                 elif step.action == "custom":
-                    pass
+                    raise NotImplementedError(f"Unsupported action: {step.action}")
                 else:
                     raise NotImplementedError(f"Unsupported action: {step.action}")
 
                 # Artifacts on autosuggest and URL change
                 autosuggest_flag = False
                 if self.cfg.grounding.artifactPolicy.captureOnAutoSuggestVisible:
-                    autosuggest_flag = self._autosuggest_appeared()
+                    autosuggest_flag = self._autosuggest_appeared()  # if listbox or option are present which are event driven loaded
 
                 self._page.wait_for_load_state()
                 self._page.wait_for_load_state("domcontentloaded")
+                try:  # networkidle may throw error, its discouraged in documentation
+                    self._page.wait_for_load_state("networkidle")
+                except Exception:
+                    pass
 
-                time.sleep(2)  # TODO - Find a way to verify if page completely loaded before taking screenshot
+                time.sleep(2)  # give some extra time for page to settle down
+                # if configuration set for artifacts (DOM/Screenshot) to be captured, it will be captured
                 dom_id, sc_id = self._capture_artifacts_if_needed(url_before, autosuggest_visible=autosuggest_flag)
                 step.domReference, step.screenReference = dom_id, sc_id
 
@@ -269,10 +284,11 @@ class PWStepExecutor:
         return final_steps
 
     # ---------- save outputs ----------
-    def save_outputs(self, steps: List[Step]):
-        plan_path = self.run_dir / "plan.json"
-        artifacts_path = self.run_dir / "artifacts.json"
-        runlog_path = self.run_dir / "run_log.json"
+    def save_outputs(self, steps: List[Step], plan_file: str = "plan.json", artifacts_file: str = "artifacts.json",
+                     run_log_file: str = "run_log.json"):
+        plan_path = self.run_dir / plan_file
+        artifacts_path = self.run_dir / artifacts_file
+        runlog_path = self.run_dir / run_log_file
 
         plan_json = steps_to_json(steps)
         plan_path.write_text(plan_json, encoding="utf-8")
@@ -282,25 +298,3 @@ class PWStepExecutor:
 
         if self.cfg.logging.saveRunLog:
             self._save_json(self.run_log, runlog_path)
-
-    def run_online_per_intent(self, intents: Iterable[str], grounder: Grounder) -> list[Step]:
-        """
-        Online grounding loop:
-        - For each intent: get CURRENT artifacts, ask LLM to ground one step, execute it immediately.
-        - Returns the list of executed steps (with updated dom/screen references and confidence).
-        """
-        assert self._page, "Call start() before run_online_per_intent"
-        executed: list[Step] = []
-
-        for intent in intents:
-            # 1) Ask for CURRENT artifact ids (page state)
-            dom_id, sc_id = self.artifacts.latest_ids()
-
-            # 2) Ground THIS intent against current DOM/screenshot (LLM "eyes" here)
-            g_step = grounder.get_pw_step_from_llm(intent, dom_id=dom_id, sc_id=sc_id)
-
-            # 3) Execute immediately so page state advances, artifacts get captured on nav
-            res_steps = self.execute_steps([g_step])
-            executed.extend(res_steps)
-
-        return executed
