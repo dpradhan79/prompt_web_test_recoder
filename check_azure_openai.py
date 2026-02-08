@@ -62,6 +62,7 @@ try:
             raise e
 
         except Exception as e:
+            print(f"\n✗ Error occurred: {type(e).__name__}")
             attempt_counter += 1
             time.sleep(1)
             if not success and attempt_counter > MAX_ATTEMPT_COUNTER:
