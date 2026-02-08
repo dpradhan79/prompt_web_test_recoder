@@ -178,8 +178,8 @@ def main():
                 screenshot_path=sc_path
             )
 
-            final_steps: List[Step] = runner.execute_steps([g_step], intent.step_no)
-            final_steps.extend(final_steps)
+            steps: List[Step] = runner.execute_steps([g_step], intent.step_no)
+            final_steps.extend(steps)
     except Exception as e:
         runner.close()
         msg = f'Exception Encountered - {type(e).__name__}'
