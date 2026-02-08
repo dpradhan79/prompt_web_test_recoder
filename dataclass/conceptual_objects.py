@@ -1,6 +1,6 @@
 """
 Date                    Author                          Change Details
-02-02-2026              Debasish.P                      Data Structure To Various Conceptual Work Items
+02-02-2026              Coforge                         Data Structure To Various Conceptual Work Items
 """
 import json
 from dataclasses import dataclass, field, asdict
@@ -8,22 +8,21 @@ from typing import Optional, List, Literal, Dict, Any
 
 ActionType = Literal[
     "navigate", "click", "fill", "press", "select", "check", "uncheck",
-    "hover", "scroll", "waitFor", "assert_text", "assert_visible", "assert_match", "custom"
+    "hover", "scroll", "waitFor", "assert_text", "assert_visible", "assert_match", "assert_title"
 ]
 
-#TODO - To Add id/name/class also
 LocatorStrategyType = Literal[
-    "role", "label", "dataTestId", "aria", "text", "placeholder", "css", "xpath", "relative"
+    "id", "name", "class", "role", "label", "dataTestId", "aria", "text", "placeholder", "css", "xpath", "relative"
 ]
 
-WaitType = Literal["domReady", "load", "networkIdle"]
+WaitType = Literal["domcontentloaded", "load", "networkIdle"]
 
 
 # ---------- Core dataclasses ----------
 
 @dataclass
 class WaitConfig:
-    type: WaitType = "domReady"
+    type: WaitType = "domcontentloaded"
     timeoutMs: int = 10000
 
 
@@ -114,7 +113,7 @@ def intents_to_json_str(intents: Intents, indent: int = 2) -> str:
 
 
 # Steps <-> JSON
-def step_from_json_obj(obj: Dict[str, Any]) -> Step:
+def json_obj_to_step(obj: Dict[str, Any]) -> Step:
     required = ["intent", "action", "locator", "wait", "confidence", "domReference", "screenReference"]
     for k in required:
         if k not in obj:
@@ -140,11 +139,11 @@ def step_from_json_obj(obj: Dict[str, Any]) -> Step:
     )
 
 
-def steps_from_json_str(json_str: str) -> List[Step]:
+def json_str_to_step(json_str: str) -> List[Step]:
     raw = json.loads(json_str)
     if not isinstance(raw, list):
         raise ValueError("Steps JSON must be a list of step objects.")
-    return [step_from_json_obj(o) for o in raw]
+    return [json_obj_to_step(o) for o in raw]
 
 
 def steps_to_json(steps: List[Step], indent: int = 2) -> str:

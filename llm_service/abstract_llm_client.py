@@ -65,10 +65,14 @@ class AbstractLLMClient(ABC):
                 raise e
             except PermissionDeniedError as e:
                 msg = 'LLM Permission Denied Error'
+                logger.info(msg)
                 print(msg)
                 raise e
 
             except Exception as e:
+                msg = f'\n✗ Error occurred: {type(e).__name__}'
+                logger.info(msg)
+                print(msg)
                 attempt_counter += 1
                 time.sleep(1)
                 if not success and attempt_counter > MAX_ATTEMPT_COUNTER:

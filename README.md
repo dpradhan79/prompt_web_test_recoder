@@ -43,3 +43,10 @@ Test follows prompt, navigates web, validates and produces traces of navigation 
 - ensure you have .env file in root folder and you have key for variable/value for LLM secret key
 
   - API_KEY=1234
+- pip issue/IDE sync issue
+
+  - Try Below commands
+
+    python -m ensurepip --upgrade
+    python -m pip install --upgrade pip setuptools wheel
+    python -m pip --version

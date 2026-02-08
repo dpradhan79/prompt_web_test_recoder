@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class OpenAILLMClient(AbstractLLMClient):
-    def __init__(self, api_key: str, model: str = 'gpt-4o-mini'):
+    def __init__(self, api_key: str, model: str = 'gpt-4o'):
         self.api_key = api_key
         self.model = model
         try:

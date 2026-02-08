@@ -1,6 +1,6 @@
 """
 Date                    Author                          Change Details
-02-02-2026              Debasish.P                      Conversion Of Steps To JSONL
+02-02-2026              Coforge                      Conversion Of Steps To JSONL
 """
 import json
 from pathlib import Path
@@ -14,30 +14,36 @@ def _locator_to_playwright(locator: Locator) -> Dict[str, Any]:
     This JSONL format is a faithful projection of codegen semantics (not an official format).
     """
     s = locator.strategy
+    if s == "id":
+        return {"method": "id", "args": [locator.value if locator.value else locator.name if locator.name else ""], "index": locator.index}
+    if s == "name":
+        return {"method": "name", "args": [locator.value if locator.value else locator.name if locator.name else ""], "index": locator.index}
+    if s == "class":
+        return {"method": "class", "args": [locator.value if locator.value else locator.name if locator.name else ""], "index": locator.index}
     if s == "role":
         return {"method": "getByRole",
-                "args": [locator.role or "", {"name": locator.name} if locator.name else {}, locator.index]}
+                "args": [locator.role or "", {"name": locator.name} if locator.name else {}], "index": locator.index}
     if s == "label":
-        return {"method": "getByLabel", "args": [locator.value or locator.name or ""]}
+        return {"method": "getByLabel", "args": [locator.value or locator.name or ""], "index": locator.index}
     if s == "dataTestId":
-        return {"method": "getByTestId", "args": [locator.value or ""]}
+        return {"method": "getByTestId", "args": [locator.value or ""], "index": locator.index}
     if s == "aria":
         if locator.name:
-            return {"method": "getByRole", "args": ["button", {"name": locator.name}]}
+            return {"method": "getByRole", "args": ["button", {"name": locator.name}], "index": locator.index}
         if locator.value:
-            return {"method": "locator", "args": [f"[aria-label='{locator.value}']"]}
-        return {"method": "locator", "args": ["[aria-label]"]}
+            return {"method": "locator", "args": [f"[aria-label='{locator.value}']"], "index": locator.index}
+        return {"method": "locator", "args": ["[aria-label]"], "index": locator.index}
     if s == "text":
-        return {"method": "getByText", "args": [locator.value or "", {"exact": True}]}
+        return {"method": "getByText", "args": [locator.value or "", {"exact": True}], "index": locator.index}
     if s == "placeholder":
-        return {"method": "getByPlaceholder", "args": [locator.value or ""]}
+        return {"method": "getByPlaceholder", "args": [locator.value or ""], "index": locator.index}
     if s == "css":
-        return {"method": "locator", "args": [locator.value or ""]}
+        return {"method": "locator", "args": [locator.value or ""], "index": locator.index}
     if s == "xpath":
-        return {"method": "locator", "args": [f"xpath={locator.value}"]}
+        return {"method": "locator", "args": [f"xpath={locator.value}"], "index": locator.index}
     if s == "relative":
         # Approximate using text search (improve with anchors if available)
-        return {"method": "getByText", "args": [locator.value or "", {"exact": False}]}
+        return {"method": "getByText", "args": [locator.value or "", {"exact": False}], "index": locator.index}
     return {"method": "locator", "args": ["html"]}
 
 
